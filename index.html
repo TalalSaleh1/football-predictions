@@ -453,4 +453,155 @@ app.get('/me', ensureAuth, (req,res)=>{
 
 // Admin
 app.get('/admin', (req,res)=>{
-  if(!isAdmin(req)) return res.status(403).
+  if(!isAdmin(req)) return res.status(403).send('ممنوع. أضف ?key=ADMIN_KEY');
+  db.all(`SELECT * FROM seasons ORDER BY id DESC`, (eS, seasons)=>{
+    const active = (seasons.find(s=>s.is_active===1) || seasons[0] || null);
+    const sid = active? active.id : null;
+    if(!sid){
+      const body = `<section class="card">
+        <h2>إدارة الموسم</h2>
+        <form method="POST" action="/admin/create-season?key=${encodeURIComponent(req.query.key)}" class="form-grid">
+          <label>اسم الموسم</label><input name="name" placeholder="موسم 2025"><button>إنشاء موسم وجعله نشط</button>
+        </form>
+      </section>`;
+      return res.send(layout(null,'لوحة الإدارة', body));
+    }
+    db.all(`SELECT * FROM rounds WHERE season_id=? ORDER BY leg ASC, round_number ASC`, [sid], (eR, rounds)=>{
+      db.all(`SELECT * FROM matches WHERE season_id=? ORDER BY round_id ASC, kickoff_at ASC`, [sid], (eM, matches)=>{
+        const seasonSelect = `<form method="POST" action="/admin/set-active-season?key=${encodeURIComponent(req.query.key)}" class="form-grid">
+          <label>الموسم النشط</label>
+          <select name="season_id">
+            ${seasons.map(s=> `<option value="${s.id}" ${s.id===sid?'selected':''}>${escapeHtml(s.name)} ${s.is_active?'(نشط)':''}</option>`).join('')}
+          </select>
+          <button>تعيين كالنشط</button>
+        </form>`;
+
+        const createRound = `<form method="POST" action="/admin/create-round?key=${encodeURIComponent(req.query.key)}" class="form-grid">
+          <input type="hidden" name="season_id" value="${sid}">
+          <label>الدور</label>
+          <select name="leg"><option value="1">الأول</option><option value="2">الثاني</option></select>
+          <label>رقم الجولة</label><input type="number" name="round_number" min="1" value="1">
+          <button>إضافة جولة</button>
+        </form>`;
+
+        const roundsTable = `<table>
+          <thead><tr><th>ID</th><th>الدور</th><th>الجولة</th><th>نشطة؟</th><th>اجعلها نشطة</th></tr></thead>
+          <tbody>
+          ${rounds.map(r=> `<tr>
+            <td>${r.id}</td><td>${r.leg===1?'الأول':'الثاني'}</td><td>${r.round_number}</td><td>${r.is_active?'نعم':'لا'}</td>
+            <td>
+              <form method="POST" action="/admin/set-active-round?key=${encodeURIComponent(req.query.key)}">
+                <input type="hidden" name="season_id" value="${sid}">
+                <input type="hidden" name="round_id" value="${r.id}">
+                <button>تفعيل</button>
+              </form>
+            </td></tr>`).join('')}
+          </tbody>
+        </table>`;
+
+        const addMatch = `<form method="POST" action="/admin/add-match?key=${encodeURIComponent(req.query.key)}" class="form-grid">
+          <label>الجولة</label>
+          <select name="round_id">
+            ${rounds.map(r=> `<option value="${r.id}">دور ${r.leg===1?'الأول':'الثاني'} — جولة ${r.round_number}</option>`).join('')}
+          </select>
+          <input type="hidden" name="season_id" value="${sid}">
+          <label>المستضيف</label><input name="home_team" required>
+          <label>الضيف</label><input name="away_team" required>
+          <label>وقت البداية</label><input name="kickoff_at" placeholder="YYYY-MM-DD HH:MM">
+          <button>إضافة مباراة</button>
+        </form>`;
+
+        const matchesTable = `<table>
+          <thead><tr><th>ID</th><th>الجولة</th><th>المباراة</th><th>الوقت</th><th>النتيجة</th><th>تحديث</th></tr></thead>
+          <tbody>
+            ${matches.map(m=>{
+              const r = rounds.find(x=> x.id===m.round_id);
+              return `<tr>
+                <td>${m.id}</td>
+                <td>${r? ((r.leg===1?'الأول':'الثاني')+' — '+r.round_number): '-'}</td>
+                <td>${escapeHtml(m.home_team)} vs ${escapeHtml(m.away_team)}</td>
+                <td>${m.kickoff_at || '-'}</td>
+                <td>${(m.home_goals!=null && m.away_goals!=null)? `${m.home_goals} : ${m.away_goals}`:'-'}</td>
+                <td>
+                  <form method="POST" action="/admin/set-result?key=${encodeURIComponent(req.query.key)}">
+                    <input type="hidden" name="match_id" value="${m.id}">
+                    <input class="narrow" type="number" name="home_goals" min="0" required> :
+                    <input class="narrow" type="number" name="away_goals" min="0" required>
+                    <button>حفظ</button>
+                  </form>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+
+        const body = `
+        <section class="card">
+          <h2>إدارة الموسم</h2>
+          <form method="POST" action="/admin/create-season?key=${encodeURIComponent(req.query.key)}" class="form-grid">
+            <label>اسم الموسم</label><input name="name" placeholder="موسم 2025">
+            <button>إنشاء موسم وجعله نشط</button>
+          </form>
+          ${seasonSelect}
+        </section>
+        <section class="card"><h2>الجولات</h2>${createRound}<h3>كل الجولات</h3>${roundsTable}</section>
+        <section class="card"><h2>المباريات</h2>${addMatch}<h3>قائمة المباريات</h3>${matchesTable}</section>`;
+        res.send(layout(null,'لوحة الإدارة', body));
+      });
+    });
+  });
+});
+
+app.post('/admin/create-season', (req,res)=>{
+  if(!isAdmin(req)) return res.status(403).send('Forbidden');
+  let body=''; req.on('data',c=> body+=c); req.on('end', ()=>{
+    const name = new URLSearchParams(body).get('name');
+    if(!name) return res.redirect('/admin?key='+encodeURIComponent(ADMIN_KEY));
+    db.serialize(()=>{ db.run(`UPDATE seasons SET is_active=0`); db.run(`INSERT INTO seasons(name,is_active) VALUES(?,1)`, [name], ()=> res.redirect('/admin?key='+encodeURIComponent(ADMIN_KEY))); });
+  });
+});
+app.post('/admin/set-active-season', (req,res)=>{
+  if(!isAdmin(req)) return res.status(403).send('Forbidden');
+  let body=''; req.on('data',c=> body+=c); req.on('end', ()=>{
+    const id = parseInt(new URLSearchParams(body).get('season_id'),10);
+    db.serialize(()=>{ db.run(`UPDATE seasons SET is_active=0`); db.run(`UPDATE seasons SET is_active=1 WHERE id=?`, [id], ()=> res.redirect('/admin?key='+encodeURIComponent(ADMIN_KEY))); });
+  });
+});
+app.post('/admin/create-round', (req,res)=>{
+  if(!isAdmin(req)) return res.status(403).send('Forbidden');
+  let body=''; req.on('data',c=> body+=c); req.on('end', ()=>{
+    const p = new URLSearchParams(body);
+    db.run(`INSERT INTO rounds(season_id, leg, round_number) VALUES(?,?,?)`,
+      [parseInt(p.get('season_id'),10), parseInt(p.get('leg'),10), parseInt(p.get('round_number'),10)],
+      ()=> res.redirect('/admin?key='+encodeURIComponent(ADMIN_KEY)));
+  });
+});
+app.post('/admin/set-active-round', (req,res)=>{
+  if(!isAdmin(req)) return res.status(403).send('Forbidden');
+  let body=''; req.on('data',c=> body+=c); req.on('end', ()=>{
+    const p = new URLSearchParams(body);
+    const sid = parseInt(p.get('season_id'),10);
+    const rid = parseInt(p.get('round_id'),10);
+    db.serialize(()=>{ db.run(`UPDATE rounds SET is_active=0 WHERE season_id=?`, [sid]); db.run(`UPDATE rounds SET is_active=1 WHERE id=?`, [rid], ()=> res.redirect('/admin?key='+encodeURIComponent(ADMIN_KEY))); });
+  });
+});
+app.post('/admin/add-match', (req,res)=>{
+  if(!isAdmin(req)) return res.status(403).send('Forbidden');
+  let body=''; req.on('data',c=> body+=c); req.on('end', ()=>{
+    const p = new URLSearchParams(body);
+    db.run(`INSERT INTO matches(season_id, round_id, home_team, away_team, kickoff_at) VALUES(?,?,?,?,?)`,
+      [parseInt(p.get('season_id'),10), parseInt(p.get('round_id'),10), p.get('home_team'), p.get('away_team'), p.get('kickoff_at') || null],
+      ()=> res.redirect('/admin?key='+encodeURIComponent(ADMIN_KEY)));
+  });
+});
+app.post('/admin/set-result', (req,res)=>{
+  if(!isAdmin(req)) return res.status(403).send('Forbidden');
+  let body=''; req.on('data',c=> body+=c); req.on('end', ()=>{
+    const p = new URLSearchParams(body);
+    db.run(`UPDATE matches SET home_goals=?, away_goals=? WHERE id=?`,
+      [parseInt(p.get('home_goals'),10), parseInt(p.get('away_goals'),10), parseInt(p.get('match_id'),10)],
+      ()=> res.redirect('/admin?key='+encodeURIComponent(ADMIN_KEY)));
+  });
+});
+
+app.listen(PORT, ()=> console.log(`خادم يعمل على http://localhost:${PORT}`));
