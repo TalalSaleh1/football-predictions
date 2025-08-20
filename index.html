@@ -30,10 +30,6 @@
             <!-- Admin Note -->
             <div class="mt-2 text-xs text-gray-500 text-center">
                 💡 لوحة الإدارة محمية بكلمة مرور للمدير فقط
-                <br>
-                <button onclick="alert('الزر يعمل! ✅'); console.log('اختبار الزر نجح');" class="mt-1 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
-                    🧪 اختبار الزر
-                </button>
             </div>
             
             <div class="mt-4 bg-white rounded-lg shadow-md p-4 inline-block">
@@ -114,7 +110,10 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <input type="date" id="newMatchDate" class="border rounded-lg px-3 py-2">
                     <input type="time" id="newMatchTime" class="border rounded-lg px-3 py-2">
-                    <input type="text" id="newActualResult" placeholder="النتيجة الفعلية (2-1)" class="border rounded-lg px-3 py-2">
+                    <input type="text" id="newActualResult" placeholder="النتيجة الفعلية (اختياري)" class="border rounded-lg px-3 py-2">
+                </div>
+                <div class="text-xs text-gray-500 mb-4">
+                    💡 النتيجة الفعلية اختيارية - يمكن إضافتها لاحقاً بعد انتهاء المباراة
                 </div>
                 <button onclick="addNewMatch()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg w-full">
                     إضافة مباراة
@@ -597,7 +596,7 @@
                 `;
 
                 round.matches.forEach(match => {
-                    if (player.predictions[match.id]) {
+                    if (player.predictions[match.id] && match.actualResult) {
                         const basePoints = calculatePoints(match.actualResult, player.predictions[match.id].prediction);
                         let finalPoints = basePoints;
                         
@@ -674,7 +673,7 @@
             // Count high score and zero predictions
             rounds.forEach(round => {
                 round.matches.forEach(match => {
-                    if (player.predictions[match.id]) {
+                    if (player.predictions[match.id] && match.actualResult) {
                         const basePoints = calculatePoints(match.actualResult, player.predictions[match.id].prediction);
                         if (basePoints >= 2) { // Exact score (4) or goal difference (2)
                             highScorePredictions++;
@@ -924,7 +923,7 @@
             
             if (panel.classList.contains('hidden')) {
                 console.log('📝 طلب كلمة المرور');
-                const password = prompt('🔐 أدخل كلمة مرور المدير:\n\n💡 كلمة المرور: admin123');
+                const password = prompt('🔐 أدخل كلمة مرور المدير:');
                 
                 if (password === null) {
                     console.log('❌ تم إلغاء العملية');
@@ -933,7 +932,7 @@
                 
                 if (password !== 'admin123') {
                     console.log('❌ كلمة مرور خاطئة');
-                    alert('❌ كلمة المرور غير صحيحة!\n\n🔑 كلمة المرور الصحيحة: admin123');
+                    alert('❌ كلمة المرور غير صحيحة!');
                     return;
                 }
                 
@@ -1021,6 +1020,7 @@
             renderMatches();
             populateRoundSelect();
             populateEditMatchesList();
+            saveData(); // Save changes
             
             alert('تم إضافة الجولة بنجاح!');
         }
@@ -1035,8 +1035,8 @@
             const time = document.getElementById('newMatchTime').value;
             const result = document.getElementById('newActualResult').value.trim();
             
-            if (!team1 || !team2 || !date || !time || !result) {
-                alert('يرجى ملء جميع الحقول المطلوبة');
+            if (!team1 || !team2 || !date || !time) {
+                alert('يرجى ملء الحقول المطلوبة (الفرق والتاريخ والوقت)');
                 return;
             }
             
@@ -1052,7 +1052,7 @@
                 team2: team2,
                 team1Flag: team1Flag || '⚽',
                 team2Flag: team2Flag || '⚽',
-                actualResult: result,
+                actualResult: result || null, // null if no result provided
                 date: date,
                 time: time
             };
@@ -1070,6 +1070,7 @@
             
             renderMatches();
             populateEditMatchesList();
+            saveData(); // Save changes
             
             alert('تم إضافة المباراة بنجاح!');
         }
@@ -1096,15 +1097,30 @@
             }
             
             // Update match data
-            targetMatch.team1 = document.getElementById(`edit_team1_${matchId}`).value.trim();
-            targetMatch.team1Flag = document.getElementById(`edit_team1Flag_${matchId}`).value.trim();
-            targetMatch.team2 = document.getElementById(`edit_team2_${matchId}`).value.trim();
-            targetMatch.team2Flag = document.getElementById(`edit_team2Flag_${matchId}`).value.trim();
-            targetMatch.date = document.getElementById(`edit_date_${matchId}`).value;
-            targetMatch.time = document.getElementById(`edit_time_${matchId}`).value;
-            targetMatch.actualResult = document.getElementById(`edit_result_${matchId}`).value.trim();
+            const newTeam1 = document.getElementById(`edit_team1_${matchId}`).value.trim();
+            const newTeam1Flag = document.getElementById(`edit_team1Flag_${matchId}`).value.trim();
+            const newTeam2 = document.getElementById(`edit_team2_${matchId}`).value.trim();
+            const newTeam2Flag = document.getElementById(`edit_team2Flag_${matchId}`).value.trim();
+            const newDate = document.getElementById(`edit_date_${matchId}`).value;
+            const newTime = document.getElementById(`edit_time_${matchId}`).value;
+            const newResult = document.getElementById(`edit_result_${matchId}`).value.trim();
+            
+            if (!newTeam1 || !newTeam2 || !newDate || !newTime) {
+                alert('يرجى ملء الحقول المطلوبة (الفرق والتاريخ والوقت)');
+                return;
+            }
+            
+            targetMatch.team1 = newTeam1;
+            targetMatch.team1Flag = newTeam1Flag || '⚽';
+            targetMatch.team2 = newTeam2;
+            targetMatch.team2Flag = newTeam2Flag || '⚽';
+            targetMatch.date = newDate;
+            targetMatch.time = newTime;
+            targetMatch.actualResult = newResult || null;
             
             renderMatches();
+            populateEditMatchesList();
+            saveData(); // Save changes
             alert('تم تحديث المباراة بنجاح!');
         }
 
@@ -1117,16 +1133,21 @@
             if (round) {
                 round.matches = round.matches.filter(m => m.id !== matchId);
                 
-                // Remove any predictions for this match
-                delete userPredictions[matchId];
-                
-                // Remove any double match selection for this match
-                if (doubleMatchSelections[roundId] === matchId) {
-                    delete doubleMatchSelections[roundId];
-                }
+                // Remove any predictions for this match from all players
+                Object.keys(players).forEach(playerId => {
+                    if (players[playerId].predictions[matchId]) {
+                        delete players[playerId].predictions[matchId];
+                    }
+                    
+                    // Remove any double match selection for this match
+                    if (players[playerId].doubleMatchSelections[roundId] === matchId) {
+                        delete players[playerId].doubleMatchSelections[roundId];
+                    }
+                });
                 
                 renderMatches();
                 populateEditMatchesList();
+                saveData(); // Save changes
                 alert('تم حذف المباراة بنجاح!');
             }
         }
@@ -1468,7 +1489,7 @@
                 `;
 
                 round.matches.forEach(match => {
-                    if (player.predictions[match.id]) {
+                    if (player.predictions[match.id] && match.actualResult) {
                         const basePoints = calculatePoints(match.actualResult, player.predictions[match.id].prediction);
                         let finalPoints = basePoints;
                         
@@ -1545,7 +1566,7 @@
             // Count high score and zero predictions
             rounds.forEach(round => {
                 round.matches.forEach(match => {
-                    if (player.predictions[match.id]) {
+                    if (player.predictions[match.id] && match.actualResult) {
                         const basePoints = calculatePoints(match.actualResult, player.predictions[match.id].prediction);
                         if (basePoints >= 2) { // Exact score (4) or goal difference (2)
                             highScorePredictions++;
@@ -1867,5 +1888,5 @@
         renderMatches();
         updateLeaderboard();
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'971fef92309a5051',t:'MTc1NTY3MjQxMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97200e0f20b0f445',t:'MTc1NTY3MzY1OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
