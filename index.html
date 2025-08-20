@@ -1,0 +1,1871 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مسابقة توقعات كرة القدم</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+        body { font-family: 'Cairo', sans-serif; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-green-50 to-blue-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-green-800 mb-2">⚽ مسابقة توقعات كرة القدم</h1>
+            <p class="text-gray-600">توقع نتائج المباريات واحصل على النقاط</p>
+            
+            <!-- Control Buttons -->
+            <div class="mt-4 flex justify-center space-x-4">
+                <button onclick="console.log('تم النقر على الزر!'); toggleAdminPanel(); return false;" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg cursor-pointer" title="للمدير فقط - محمي بكلمة مرور" style="pointer-events: auto;">
+                    🔒 إدارة المباريات
+                </button>
+                <button onclick="resetAll()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">
+                    🔄 إعادة تعيين
+                </button>
+            </div>
+            
+            <!-- Admin Note -->
+            <div class="mt-2 text-xs text-gray-500 text-center">
+                💡 لوحة الإدارة محمية بكلمة مرور للمدير فقط
+                <br>
+                <button onclick="alert('الزر يعمل! ✅'); console.log('اختبار الزر نجح');" class="mt-1 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
+                    🧪 اختبار الزر
+                </button>
+            </div>
+            
+            <div class="mt-4 bg-white rounded-lg shadow-md p-4 inline-block">
+                <span class="text-2xl font-bold text-blue-600">مجموع النقاط: </span>
+                <span id="totalPoints" class="text-3xl font-bold text-green-600">0</span>
+            </div>
+            
+            <!-- Bonus/Penalty Info -->
+            <div class="mt-4 bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg p-4 max-w-2xl mx-auto">
+                <h3 class="text-lg font-bold text-orange-800 mb-2">🎲 نظام البونص والخصم</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div class="bg-green-100 rounded-lg p-3">
+                        <div class="font-bold text-green-800">🎯 البونص</div>
+                        <div class="text-green-600">4 توقعات عالية النقاط = +2 نقطة</div>
+                        <div class="text-green-600">كل توقع إضافي = +1 نقطة</div>
+                        <div class="text-xs text-green-500 mt-1">*النتيجة الدقيقة (4 نقاط) أو فارق الأهداف (2 نقطة)</div>
+                    </div>
+                    <div class="bg-red-100 rounded-lg p-3">
+                        <div class="font-bold text-red-800">❌ الخصم</div>
+                        <div class="text-red-600">4 توقعات خاطئة = -2 نقطة</div>
+                        <div class="text-red-600">كل توقع إضافي = -1 نقطة</div>
+                        <div class="text-xs text-red-500 mt-1">*التوقعات التي لم تحصل على أي نقاط</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Multiplier Status -->
+            <div class="mt-4 flex justify-center space-x-4">
+                <div class="bg-yellow-100 rounded-lg p-3">
+                    <div class="text-sm font-bold text-yellow-800">مضاعف الدور الأول</div>
+                    <div id="firstPhaseStatus" class="text-xs text-yellow-600">متاح ✨</div>
+                </div>
+                <div class="bg-purple-100 rounded-lg p-3">
+                    <div class="text-sm font-bold text-purple-800">مضاعف الدور الثاني</div>
+                    <div id="secondPhaseStatus" class="text-xs text-purple-600">متاح ✨</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Panel -->
+        <div id="adminPanel" class="hidden mb-8 bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">⚙️ لوحة إدارة المباريات</h2>
+            
+            <!-- Add New Round -->
+            <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+                <h3 class="text-lg font-bold text-blue-800 mb-4">إضافة جولة جديدة</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input type="text" id="newRoundName" placeholder="اسم الجولة" class="border rounded-lg px-3 py-2">
+                    <select id="newRoundPhase" class="border rounded-lg px-3 py-2">
+                        <option value="first">الدور الأول</option>
+                        <option value="second">الدور الثاني</option>
+                    </select>
+                    <button onclick="addNewRound()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
+                        إضافة جولة
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Add New Match -->
+            <div class="mb-6 p-4 bg-green-50 rounded-lg">
+                <h3 class="text-lg font-bold text-green-800 mb-4">إضافة مباراة جديدة</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <select id="matchRoundSelect" class="border rounded-lg px-3 py-2">
+                        <!-- Will be populated dynamically -->
+                    </select>
+                    <div></div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <input type="text" id="newTeam1" placeholder="الفريق الأول" class="border rounded-lg px-3 py-2 w-full mb-2">
+                        <input type="text" id="newTeam1Flag" placeholder="رمز الفريق الأول (🔴)" class="border rounded-lg px-3 py-2 w-full">
+                    </div>
+                    <div>
+                        <input type="text" id="newTeam2" placeholder="الفريق الثاني" class="border rounded-lg px-3 py-2 w-full mb-2">
+                        <input type="text" id="newTeam2Flag" placeholder="رمز الفريق الثاني (⚪)" class="border rounded-lg px-3 py-2 w-full">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <input type="date" id="newMatchDate" class="border rounded-lg px-3 py-2">
+                    <input type="time" id="newMatchTime" class="border rounded-lg px-3 py-2">
+                    <input type="text" id="newActualResult" placeholder="النتيجة الفعلية (2-1)" class="border rounded-lg px-3 py-2">
+                </div>
+                <button onclick="addNewMatch()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg w-full">
+                    إضافة مباراة
+                </button>
+            </div>
+            
+            <!-- Edit Existing Matches -->
+            <div class="p-4 bg-yellow-50 rounded-lg">
+                <h3 class="text-lg font-bold text-yellow-800 mb-4">تعديل المباريات الموجودة</h3>
+                <div id="editMatchesList" class="space-y-4">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard -->
+        <div class="mb-8 bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-center text-purple-800 mb-6">🏆 ترتيب المتسابقين</h2>
+            <div class="mb-4 flex justify-center space-x-4">
+                <button onclick="toggleLeaderboard()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
+                    📊 عرض/إخفاء الترتيب
+                </button>
+                <div class="text-sm text-gray-600 bg-yellow-100 px-3 py-2 rounded-lg">
+                    💡 المتسابقون يسجلون تلقائياً عند دخولهم
+                </div>
+            </div>
+            <div id="leaderboardContainer" class="hidden">
+                <div id="leaderboardTable" class="overflow-x-auto">
+                    <!-- Leaderboard will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Player Login -->
+        <div id="playerLogin" class="mb-6 bg-gradient-to-r from-blue-100 to-purple-100 rounded-lg p-6">
+            <div class="text-center">
+                <h2 class="text-2xl font-bold text-blue-800 mb-4">🏆 مرحباً بك في المسابقة</h2>
+                <div class="max-w-md mx-auto">
+                    <input type="text" id="playerNameInput" placeholder="أدخل اسمك للمشاركة" 
+                           class="border-2 border-blue-300 rounded-lg px-4 py-3 text-lg font-bold bg-white w-full mb-4"
+                           onkeypress="if(event.key==='Enter') loginPlayer()">
+                    <button onclick="loginPlayer()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg w-full">
+                        🚀 ابدأ التوقع
+                    </button>
+                </div>
+                <div class="mt-4 text-sm text-gray-600">
+                    💡 أدخل اسمك وابدأ في توقع نتائج المباريات
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Player Info -->
+        <div id="currentPlayerInfo" class="hidden mb-6 bg-gradient-to-r from-green-100 to-blue-100 rounded-lg p-4">
+            <div class="text-center">
+                <div class="text-lg font-bold text-green-800 mb-2">
+                    مرحباً <span id="currentPlayerName" class="text-blue-600"></span>! 👋
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
+                    <div class="bg-white rounded-lg p-3">
+                        <div class="font-bold text-blue-600">النقاط الإجمالية</div>
+                        <div id="playerTotalPoints" class="text-2xl font-bold text-green-600">0</div>
+                    </div>
+                    <div class="bg-white rounded-lg p-3">
+                        <div class="font-bold text-purple-600">الأسابيع المشاركة</div>
+                        <div id="playerWeeksCount" class="text-2xl font-bold text-purple-600">0</div>
+                    </div>
+                    <div class="bg-white rounded-lg p-3">
+                        <div class="font-bold text-orange-600">متوسط النقاط</div>
+                        <div id="playerAverage" class="text-2xl font-bold text-orange-600">0</div>
+                    </div>
+                    <div class="bg-white rounded-lg p-3">
+                        <div class="font-bold text-gray-600">عضو منذ</div>
+                        <div id="playerJoinDate" class="text-sm font-bold text-gray-600">-</div>
+                    </div>
+                </div>
+                <div class="flex justify-center space-x-4">
+                    <button onclick="logoutPlayer()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+                        تسجيل خروج
+                    </button>
+                    <button onclick="viewMyResults()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
+                        📊 نتائج هذا الأسبوع
+                    </button>
+                    <button onclick="viewMyHistory()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm">
+                        📈 تاريخي الكامل
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content (hidden until login) -->
+        <div id="mainContent" class="hidden">
+            <!-- Matches Container -->
+            <div id="matchesContainer" class="space-y-6">
+                <!-- Matches will be populated here -->
+            </div>
+
+            <!-- Submit Button -->
+            <div class="text-center mt-8">
+                <button onclick="calculateResults()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200">
+                    احسب النتائج النهائية
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Modal -->
+        <div id="resultsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+                <h3 class="text-2xl font-bold text-center mb-4">🏆 النتائج النهائية</h3>
+                <div id="finalResults" class="text-center">
+                    <!-- Results will be shown here -->
+                </div>
+                <button onclick="closeModal()" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    إغلاق
+                </button>
+            </div>
+        </div>
+
+        <!-- History Modal -->
+        <div id="historyModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-96 overflow-y-auto">
+                <h3 class="text-2xl font-bold text-center mb-4">📈 تاريخك الكامل في المسابقة</h3>
+                <div id="playerHistory" class="text-center">
+                    <!-- History will be shown here -->
+                </div>
+                <button onclick="closeHistoryModal()" class="w-full mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
+                    إغلاق
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample matches data organized by rounds
+        const rounds = [
+            {
+                id: 1,
+                name: "الجولة الأولى",
+                phase: "first", // first or second
+                matches: [
+                    {
+                        id: 1,
+                        team1: "الأهلي",
+                        team2: "الزمالك",
+                        team1Flag: "🔴",
+                        team2Flag: "⚪",
+                        actualResult: "2-1",
+                        date: "2024-01-15",
+                        time: "20:00"
+                    },
+                    {
+                        id: 2,
+                        team1: "برشلونة",
+                        team2: "ريال مدريد",
+                        team1Flag: "🔵",
+                        team2Flag: "⚪",
+                        actualResult: "1-3",
+                        date: "2024-01-16",
+                        time: "22:00"
+                    }
+                ]
+            },
+            {
+                id: 2,
+                name: "الجولة الثانية",
+                phase: "first",
+                matches: [
+                    {
+                        id: 3,
+                        team1: "مانشستر سيتي",
+                        team2: "ليفربول",
+                        team1Flag: "🔵",
+                        team2Flag: "🔴",
+                        actualResult: "0-2",
+                        date: "2024-01-17",
+                        time: "18:30"
+                    },
+                    {
+                        id: 4,
+                        team1: "الهلال",
+                        team2: "النصر",
+                        team1Flag: "🔵",
+                        team2Flag: "🟡",
+                        actualResult: "3-0",
+                        date: "2024-01-18",
+                        time: "21:00"
+                    }
+                ]
+            },
+            {
+                id: 3,
+                name: "الجولة الثالثة",
+                phase: "second",
+                matches: [
+                    {
+                        id: 5,
+                        team1: "باريس سان جيرمان",
+                        team2: "مانشستر يونايتد",
+                        team1Flag: "🔵",
+                        team2Flag: "🔴",
+                        actualResult: "2-2",
+                        date: "2024-01-19",
+                        time: "21:30"
+                    },
+                    {
+                        id: 6,
+                        team1: "الاتحاد",
+                        team2: "الشباب",
+                        team1Flag: "🟡",
+                        team2Flag: "⚪",
+                        actualResult: "1-0",
+                        date: "2024-01-20",
+                        time: "19:00"
+                    }
+                ]
+            }
+        ];
+
+        let players = {}; // {playerId: {name, predictions: {}, totalPoints: 0, roundPoints: {}, doubleMatchSelections: {}, doubleRoundUsed: {}}}
+        let currentPlayerId = null;
+        let nextPlayerId = 1;
+        let nextMatchId = 7; // Counter for new match IDs
+        let nextRoundId = 4; // Counter for new round IDs
+
+        function renderMatches() {
+            const container = document.getElementById('matchesContainer');
+            container.innerHTML = '';
+
+            rounds.forEach(round => {
+                const roundCard = `
+                    <div class="mb-8">
+                        <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-2xl font-bold">${round.name}</h2>
+                                <div class="flex items-center space-x-4">
+                                    <div class="text-sm">
+                                        ${round.phase === 'first' ? '🥇 الدور الأول' : '🥈 الدور الثاني'}
+                                    </div>
+                                    <button onclick="toggleDoubleRound(${round.id}, '${round.phase}')" 
+                                            id="doubleRoundBtn_${round.id}"
+                                            class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-full text-sm font-bold transition-colors">
+                                        ⚡ مضاعف الجولة
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-b-lg shadow-lg p-6 space-y-6">
+                            ${round.matches.map(match => `
+                                <div class="border rounded-lg p-4 ${doubleMatchSelections[round.id] === match.id ? 'border-yellow-400 bg-yellow-50' : 'border-gray-200'}">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="text-sm text-gray-500">
+                                            📅 ${match.date} | ⏰ ${match.time}
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <div class="text-sm font-semibold text-blue-600">
+                                                المباراة ${match.id}
+                                            </div>
+                                            <button onclick="selectDoubleMatch(${round.id}, ${match.id})" 
+                                                    id="doubleBtn_${match.id}"
+                                                    class="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded text-xs font-bold transition-colors">
+                                                ⭐ مضاعف
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div class="text-center flex-1">
+                                            <div class="text-3xl mb-2">${match.team1Flag}</div>
+                                            <div class="font-bold text-lg text-gray-800">${match.team1}</div>
+                                        </div>
+                                        
+                                        <div class="text-center mx-4">
+                                            <div class="text-2xl font-bold text-gray-400 mb-2">VS</div>
+                                            <div class="flex items-center space-x-2">
+                                                <input type="number" 
+                                                       id="team1Score_${match.id}" 
+                                                       min="0" max="10" 
+                                                       class="w-12 h-12 text-center border-2 border-gray-300 rounded-lg font-bold text-lg focus:border-blue-500 focus:outline-none"
+                                                       placeholder="0"
+                                                       onchange="updatePrediction(${match.id}, ${round.id})">
+                                                <span class="text-xl font-bold">-</span>
+                                                <input type="number" 
+                                                       id="team2Score_${match.id}" 
+                                                       min="0" max="10" 
+                                                       class="w-12 h-12 text-center border-2 border-gray-300 rounded-lg font-bold text-lg focus:border-blue-500 focus:outline-none"
+                                                       placeholder="0"
+                                                       onchange="updatePrediction(${match.id}, ${round.id})">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="text-center flex-1">
+                                            <div class="text-3xl mb-2">${match.team2Flag}</div>
+                                            <div class="font-bold text-lg text-gray-800">${match.team2}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="text-center">
+                                        <div class="text-sm text-gray-500 mb-2">توقعك:</div>
+                                        <div id="prediction_${match.id}" class="text-lg font-bold text-blue-600">
+                                            لم يتم التوقع بعد
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += roundCard;
+            });
+            
+            updateMultiplierButtons();
+        }
+
+        function updatePrediction(matchId, roundId) {
+            if (!currentPlayerId) {
+                alert('يرجى اختيار متسابق أولاً!');
+                return;
+            }
+            
+            const team1Score = document.getElementById(`team1Score_${matchId}`).value;
+            const team2Score = document.getElementById(`team2Score_${matchId}`).value;
+            
+            if (team1Score !== '' && team2Score !== '') {
+                players[currentPlayerId].predictions[matchId] = {
+                    prediction: `${team1Score}-${team2Score}`,
+                    roundId: roundId
+                };
+                document.getElementById(`prediction_${matchId}`).textContent = `${team1Score} - ${team2Score}`;
+                document.getElementById(`prediction_${matchId}`).className = "text-lg font-bold text-green-600";
+            } else {
+                delete players[currentPlayerId].predictions[matchId];
+                document.getElementById(`prediction_${matchId}`).textContent = "لم يتم التوقع بعد";
+                document.getElementById(`prediction_${matchId}`).className = "text-lg font-bold text-blue-600";
+            }
+        }
+
+        function selectDoubleMatch(roundId, matchId) {
+            if (!currentPlayerId) {
+                alert('يرجى تسجيل الدخول أولاً!');
+                return;
+            }
+            
+            const player = players[currentPlayerId];
+            
+            // Remove previous selection for this round
+            if (player.doubleMatchSelections[roundId]) {
+                const prevMatchId = player.doubleMatchSelections[roundId];
+                const prevMatchElement = document.querySelector(`[onclick="selectDoubleMatch(${roundId}, ${prevMatchId})"]`).closest('.border');
+                prevMatchElement.className = prevMatchElement.className.replace('border-yellow-400 bg-yellow-50', 'border-gray-200');
+                document.getElementById(`doubleBtn_${prevMatchId}`).textContent = '⭐ مضاعف';
+                document.getElementById(`doubleBtn_${prevMatchId}`).className = 'bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded text-xs font-bold transition-colors';
+            }
+            
+            // Set new selection
+            player.doubleMatchSelections[roundId] = matchId;
+            const matchElement = document.querySelector(`[onclick="selectDoubleMatch(${roundId}, ${matchId})"]`).closest('.border');
+            matchElement.className = matchElement.className.replace('border-gray-200', 'border-yellow-400 bg-yellow-50');
+            document.getElementById(`doubleBtn_${matchId}`).textContent = '⭐ مُختار';
+            document.getElementById(`doubleBtn_${matchId}`).className = 'bg-yellow-600 text-white px-2 py-1 rounded text-xs font-bold';
+            
+            // Auto-save
+            saveData();
+        }
+
+        function toggleDoubleRound(roundId, phase) {
+            if (doubleRoundUsed[phase]) {
+                alert(`تم استخدام مضاعف ${phase === 'first' ? 'الدور الأول' : 'الدور الثاني'} مسبقاً!`);
+                return;
+            }
+            
+            // Toggle the round multiplier
+            const round = rounds.find(r => r.id === roundId);
+            if (round.doubleRound) {
+                round.doubleRound = false;
+                document.getElementById(`doubleRoundBtn_${roundId}`).textContent = '⚡ مضاعف الجولة';
+                document.getElementById(`doubleRoundBtn_${roundId}`).className = 'bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-full text-sm font-bold transition-colors';
+            } else {
+                // Remove double round from other rounds in same phase
+                rounds.forEach(r => {
+                    if (r.phase === phase && r.id !== roundId) {
+                        r.doubleRound = false;
+                        document.getElementById(`doubleRoundBtn_${r.id}`).textContent = '⚡ مضاعف الجولة';
+                        document.getElementById(`doubleRoundBtn_${r.id}`).className = 'bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-full text-sm font-bold transition-colors';
+                    }
+                });
+                
+                round.doubleRound = true;
+                document.getElementById(`doubleRoundBtn_${roundId}`).textContent = '⚡ مُفعل';
+                document.getElementById(`doubleRoundBtn_${roundId}`).className = 'bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold';
+            }
+        }
+
+        function updateMultiplierButtons() {
+            // Update phase status
+            document.getElementById('firstPhaseStatus').textContent = doubleRoundUsed.first ? 'مُستخدم ❌' : 'متاح ✨';
+            document.getElementById('secondPhaseStatus').textContent = doubleRoundUsed.second ? 'مُستخدم ❌' : 'متاح ✨';
+            
+            // Update round buttons
+            rounds.forEach(round => {
+                const btn = document.getElementById(`doubleRoundBtn_${round.id}`);
+                if (btn && doubleRoundUsed[round.phase]) {
+                    btn.disabled = true;
+                    btn.className = 'bg-gray-400 text-white px-3 py-1 rounded-full text-sm font-bold cursor-not-allowed';
+                    btn.textContent = '⚡ غير متاح';
+                }
+            });
+        }
+
+        function calculatePoints(actualResult, prediction) {
+            const [actualTeam1, actualTeam2] = actualResult.split('-').map(Number);
+            const [predTeam1, predTeam2] = prediction.split('-').map(Number);
+            
+            // Exact score = 4 points
+            if (actualTeam1 === predTeam1 && actualTeam2 === predTeam2) {
+                return 4;
+            }
+            
+            // Same goal difference = 2 points
+            const actualDiff = actualTeam1 - actualTeam2;
+            const predDiff = predTeam1 - predTeam2;
+            if (actualDiff === predDiff && actualDiff !== 0) {
+                return 2;
+            }
+            
+            // Correct winner = 1 point
+            const actualWinner = actualTeam1 > actualTeam2 ? 'team1' : 
+                               actualTeam2 > actualTeam1 ? 'team2' : 'draw';
+            const predWinner = predTeam1 > predTeam2 ? 'team1' : 
+                              predTeam2 > predTeam1 ? 'team2' : 'draw';
+            
+            if (actualWinner === predWinner) {
+                return 1;
+            }
+            
+            return 0;
+        }
+
+        // Week management functions
+        function getCurrentWeek() {
+            const now = new Date();
+            const startOfYear = new Date(now.getFullYear(), 0, 1);
+            const dayOfYear = Math.floor((now - startOfYear) / (24 * 60 * 60 * 1000)) + 1;
+            return Math.ceil(dayOfYear / 7);
+        }
+
+        function getWeekKey() {
+            const now = new Date();
+            return `${now.getFullYear()}-W${getCurrentWeek()}`;
+        }
+
+        function calculateResults() {
+            if (!currentPlayerId) {
+                alert('يرجى تسجيل الدخول أولاً!');
+                return;
+            }
+            
+            const player = players[currentPlayerId];
+            if (Object.keys(player.predictions).length === 0) {
+                alert('يرجى إدخال توقعاتك أولاً!');
+                return;
+            }
+
+            let totalPoints = 0;
+            let resultsHTML = '';
+            let roundResults = {};
+            let totalCorrectPredictions = 0;
+            let totalWrongPredictions = 0;
+
+            // Calculate points for each round
+            rounds.forEach(round => {
+                let roundPoints = 0;
+                let correctInRound = 0;
+                let wrongInRound = 0;
+                let roundHTML = `
+                    <div class="mb-6 border rounded-lg p-4">
+                        <h3 class="text-lg font-bold text-blue-600 mb-3">
+                            ${round.name} ${round.phase === 'first' ? '🥇' : '🥈'}
+                            ${round.doubleRound ? ' ⚡ (مضاعف الجولة)' : ''}
+                        </h3>
+                `;
+
+                round.matches.forEach(match => {
+                    if (player.predictions[match.id]) {
+                        const basePoints = calculatePoints(match.actualResult, player.predictions[match.id].prediction);
+                        let finalPoints = basePoints;
+                        
+                        // Count correct and wrong predictions
+                        if (basePoints > 0) {
+                            correctInRound++;
+                            totalCorrectPredictions++;
+                        } else {
+                            wrongInRound++;
+                            totalWrongPredictions++;
+                        }
+                        
+                        // Apply match multiplier
+                        if (player.doubleMatchSelections[round.id] === match.id) {
+                            finalPoints *= 2;
+                        }
+                        
+                        roundPoints += finalPoints;
+                        
+                        const pointsColor = basePoints === 4 ? 'text-green-600' : 
+                                          basePoints === 2 ? 'text-blue-600' :
+                                          basePoints === 1 ? 'text-yellow-600' : 'text-red-600';
+                        const pointsIcon = basePoints === 4 ? '🎯' : 
+                                         basePoints === 2 ? '🎪' :
+                                         basePoints === 1 ? '✅' : '❌';
+                        
+                        const multiplierText = player.doubleMatchSelections[round.id] === match.id ? 
+                                             ` × 2 = ${finalPoints}` : '';
+                        
+                        roundHTML += `
+                            <div class="border-b pb-2 mb-2 text-sm">
+                                <div class="font-semibold">${match.team1} vs ${match.team2}</div>
+                                <div class="text-gray-600">
+                                    النتيجة: ${match.actualResult} | توقعك: ${player.predictions[match.id].prediction}
+                                </div>
+                                <div class="${pointsColor} font-bold">
+                                    ${pointsIcon} ${basePoints} نقطة${multiplierText}
+                                    ${player.doubleMatchSelections[round.id] === match.id ? ' ⭐' : ''}
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+
+                // Apply round multiplier
+                if (round.doubleRound) {
+                    roundPoints *= 2;
+                    // Mark this phase as used
+                    doubleRoundUsed[round.phase] = true;
+                }
+
+                roundHTML += `
+                    <div class="text-right font-bold text-lg ${round.doubleRound ? 'text-purple-600' : 'text-blue-600'}">
+                        مجموع الجولة: ${roundPoints} نقطة
+                        ${round.doubleRound ? ' ⚡ (مضاعف)' : ''}
+                    </div>
+                    <div class="text-right text-sm text-gray-600 mt-2">
+                        ✅ صحيح: ${correctInRound} | ❌ خاطئ: ${wrongInRound}
+                    </div>
+                </div>
+                `;
+
+                resultsHTML += roundHTML;
+                totalPoints += roundPoints;
+                roundResults[round.id] = roundPoints;
+            });
+
+            // Calculate bonus and penalty
+            let bonusPoints = 0;
+            let penaltyPoints = 0;
+            let highScorePredictions = 0; // Count predictions with 2+ points (exact score or goal difference)
+            let zeroPredictions = 0; // Count predictions with 0 points
+            
+            // Count high score and zero predictions
+            rounds.forEach(round => {
+                round.matches.forEach(match => {
+                    if (player.predictions[match.id]) {
+                        const basePoints = calculatePoints(match.actualResult, player.predictions[match.id].prediction);
+                        if (basePoints >= 2) { // Exact score (4) or goal difference (2)
+                            highScorePredictions++;
+                        } else if (basePoints === 0) { // Wrong predictions
+                            zeroPredictions++;
+                        }
+                    }
+                });
+            });
+            
+            // Bonus calculation: 4+ high score predictions (exact or goal difference)
+            if (highScorePredictions >= 4) {
+                bonusPoints = (highScorePredictions - 2); // 4 high = +2, 5 high = +3, etc.
+            }
+            
+            // Penalty calculation: 4+ zero predictions
+            if (zeroPredictions >= 4) {
+                penaltyPoints = (zeroPredictions - 2); // 4 zero = -2, 5 zero = -3, etc.
+            }
+
+            // Apply bonus and penalty
+            totalPoints += bonusPoints - penaltyPoints;
+
+            // Bonus/Penalty section
+            let bonusPenaltyHTML = '';
+            if (bonusPoints > 0 || penaltyPoints > 0) {
+                bonusPenaltyHTML = `
+                    <div class="mt-4 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border-2 border-yellow-200">
+                        <h4 class="text-lg font-bold text-center mb-3">🎲 البونص والخصم</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                `;
+                
+                if (bonusPoints > 0) {
+                    bonusPenaltyHTML += `
+                        <div class="bg-green-100 rounded-lg p-3">
+                            <div class="text-green-800 font-bold">🎯 بونص التوقعات عالية النقاط</div>
+                            <div class="text-green-600">${highScorePredictions} توقع عالي النقاط = +${bonusPoints} نقطة</div>
+                            <div class="text-xs text-green-500">النتيجة الدقيقة أو فارق الأهداف</div>
+                        </div>
+                    `;
+                }
+                
+                if (penaltyPoints > 0) {
+                    bonusPenaltyHTML += `
+                        <div class="bg-red-100 rounded-lg p-3">
+                            <div class="text-red-800 font-bold">❌ خصم التوقعات الخاطئة</div>
+                            <div class="text-red-600">${zeroPredictions} توقع خاطئ = -${penaltyPoints} نقطة</div>
+                            <div class="text-xs text-red-500">التوقعات بدون نقاط</div>
+                        </div>
+                    `;
+                }
+                
+                bonusPenaltyHTML += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            resultsHTML += bonusPenaltyHTML;
+
+            resultsHTML += `
+                <div class="text-center mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border-2 border-blue-200">
+                    <div class="text-sm text-gray-600 mb-2">
+                        📊 الإحصائيات: ${totalCorrectPredictions} صحيح | ${totalWrongPredictions} خاطئ
+                    </div>
+                    <div class="text-3xl font-bold text-blue-600 mb-2">
+                        🏆 المجموع النهائي: ${totalPoints} نقطة
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        ${totalPoints >= 25 ? 'أسطوري! 🌟⭐' : 
+                          totalPoints >= 20 ? 'ممتاز جداً! 🌟' : 
+                          totalPoints >= 15 ? 'جيد جداً! 👏' : 
+                          totalPoints >= 10 ? 'جيد! 👍' : 
+                          totalPoints >= 5 ? 'مقبول! 😊' : 'حاول مرة أخرى! 💪'}
+                    </div>
+                </div>
+            `;
+
+            // Save weekly results to player
+            const weekKey = getWeekKey();
+            if (!player.weeklyStats) player.weeklyStats = {};
+            
+            player.weeklyStats[weekKey] = {
+                points: totalPoints,
+                roundPoints: roundResults,
+                predictions: {...player.predictions},
+                doubleMatchSelections: {...player.doubleMatchSelections},
+                correctPredictions: totalCorrectPredictions,
+                wrongPredictions: totalWrongPredictions,
+                bonusPoints: bonusPoints,
+                penaltyPoints: penaltyPoints,
+                date: new Date().toISOString()
+            };
+            
+            // Calculate cumulative total points
+            let cumulativePoints = 0;
+            Object.keys(player.weeklyStats).forEach(week => {
+                cumulativePoints += player.weeklyStats[week].points;
+            });
+            player.totalPoints = cumulativePoints;
+            player.roundPoints = roundResults; // Current week round points
+            
+            // Mark used multipliers for this week
+            rounds.forEach(round => {
+                if (round.doubleRound) {
+                    player.doubleRoundUsed[round.phase] = true;
+                }
+            });
+            
+            // Update player stats display
+            updatePlayerStats();
+
+            document.getElementById('finalResults').innerHTML = resultsHTML;
+            document.getElementById('totalPoints').textContent = totalPoints;
+            document.getElementById('resultsModal').classList.remove('hidden');
+            document.getElementById('resultsModal').classList.add('flex');
+            
+            // Update leaderboard
+            updateLeaderboard();
+            
+            // Update multiplier status
+            updateMultiplierButtons();
+        }
+
+        function closeModal() {
+            document.getElementById('resultsModal').classList.add('hidden');
+            document.getElementById('resultsModal').classList.remove('flex');
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').classList.add('hidden');
+            document.getElementById('historyModal').classList.remove('flex');
+        }
+
+        function viewMyHistory() {
+            if (!currentPlayerId || !players[currentPlayerId]) {
+                alert('لا يوجد تاريخ لعرضه');
+                return;
+            }
+            
+            const player = players[currentPlayerId];
+            const weeklyStats = player.weeklyStats || {};
+            
+            if (Object.keys(weeklyStats).length === 0) {
+                alert('لا يوجد تاريخ مسجل بعد. ابدأ بالتوقع في هذا الأسبوع!');
+                return;
+            }
+            
+            let historyHTML = `
+                <div class="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                        <div>
+                            <div class="text-2xl font-bold text-blue-600">${player.totalPoints || 0}</div>
+                            <div class="text-sm text-gray-600">إجمالي النقاط</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-purple-600">${Object.keys(weeklyStats).length}</div>
+                            <div class="text-sm text-gray-600">أسابيع المشاركة</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-orange-600">${Math.round((player.totalPoints || 0) / Math.max(Object.keys(weeklyStats).length, 1))}</div>
+                            <div class="text-sm text-gray-600">متوسط النقاط</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-green-600">${player.joinDate || 'غير محدد'}</div>
+                            <div class="text-sm text-gray-600">تاريخ الانضمام</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="space-y-4 max-h-64 overflow-y-auto">
+            `;
+            
+            // Sort weeks by date (newest first)
+            const sortedWeeks = Object.keys(weeklyStats).sort((a, b) => {
+                return new Date(weeklyStats[b].date) - new Date(weeklyStats[a].date);
+            });
+            
+            sortedWeeks.forEach(weekKey => {
+                const weekData = weeklyStats[weekKey];
+                const weekDate = new Date(weekData.date).toLocaleDateString('ar-SA');
+                
+                historyHTML += `
+                    <div class="border rounded-lg p-4 bg-white hover:bg-gray-50">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="font-bold text-blue-600">${weekKey}</div>
+                            <div class="text-sm text-gray-500">${weekDate}</div>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div class="text-center">
+                                <div class="font-bold text-green-600">${weekData.points}</div>
+                                <div class="text-gray-600">النقاط</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-bold text-blue-600">${weekData.correctPredictions}</div>
+                                <div class="text-gray-600">صحيح</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-bold text-red-600">${weekData.wrongPredictions}</div>
+                                <div class="text-gray-600">خاطئ</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-bold ${weekData.bonusPoints > 0 ? 'text-green-600' : weekData.penaltyPoints > 0 ? 'text-red-600' : 'text-gray-600'}">
+                                    ${weekData.bonusPoints > 0 ? '+' + weekData.bonusPoints : weekData.penaltyPoints > 0 ? '-' + weekData.penaltyPoints : '0'}
+                                </div>
+                                <div class="text-gray-600">بونص/خصم</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            historyHTML += '</div>';
+            
+            document.getElementById('playerHistory').innerHTML = historyHTML;
+            document.getElementById('historyModal').classList.remove('hidden');
+            document.getElementById('historyModal').classList.add('flex');
+        }
+
+        function updatePlayerStats() {
+            if (!currentPlayerId || !players[currentPlayerId]) return;
+            
+            const player = players[currentPlayerId];
+            const weeklyStats = player.weeklyStats || {};
+            const weeksCount = Object.keys(weeklyStats).length;
+            const average = weeksCount > 0 ? Math.round((player.totalPoints || 0) / weeksCount) : 0;
+            
+            document.getElementById('playerTotalPoints').textContent = player.totalPoints || 0;
+            document.getElementById('playerWeeksCount').textContent = weeksCount;
+            document.getElementById('playerAverage').textContent = average;
+            document.getElementById('playerJoinDate').textContent = player.joinDate || 'اليوم';
+            document.getElementById('totalPoints').textContent = player.totalPoints || 0;
+        }
+
+        // Admin Panel Functions
+        window.toggleAdminPanel = function() {
+            console.log('🔧 بدء دالة إدارة المباريات');
+            
+            const panel = document.getElementById('adminPanel');
+            if (!panel) {
+                console.error('❌ لم يتم العثور على لوحة الإدارة');
+                alert('خطأ: لم يتم العثور على لوحة الإدارة');
+                return;
+            }
+            
+            console.log('✅ تم العثور على لوحة الإدارة');
+            
+            if (panel.classList.contains('hidden')) {
+                console.log('📝 طلب كلمة المرور');
+                const password = prompt('🔐 أدخل كلمة مرور المدير:\n\n💡 كلمة المرور: admin123');
+                
+                if (password === null) {
+                    console.log('❌ تم إلغاء العملية');
+                    return;
+                }
+                
+                if (password !== 'admin123') {
+                    console.log('❌ كلمة مرور خاطئة');
+                    alert('❌ كلمة المرور غير صحيحة!\n\n🔑 كلمة المرور الصحيحة: admin123');
+                    return;
+                }
+                
+                console.log('✅ كلمة المرور صحيحة - فتح اللوحة');
+                panel.classList.remove('hidden');
+                populateRoundSelect();
+                populateEditMatchesList();
+                alert('✅ تم فتح لوحة الإدارة بنجاح!');
+            } else {
+                console.log('🔒 إغلاق لوحة الإدارة');
+                panel.classList.add('hidden');
+                alert('🔒 تم إغلاق لوحة الإدارة');
+            }
+        }
+
+        function populateRoundSelect() {
+            const select = document.getElementById('matchRoundSelect');
+            select.innerHTML = '';
+            rounds.forEach(round => {
+                const option = document.createElement('option');
+                option.value = round.id;
+                option.textContent = round.name;
+                select.appendChild(option);
+            });
+        }
+
+        function populateEditMatchesList() {
+            const container = document.getElementById('editMatchesList');
+            container.innerHTML = '';
+            
+            rounds.forEach(round => {
+                round.matches.forEach(match => {
+                    const matchDiv = document.createElement('div');
+                    matchDiv.className = 'border rounded-lg p-4 bg-white';
+                    matchDiv.innerHTML = `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div class="font-bold text-gray-700">${round.name} - المباراة ${match.id}</div>
+                            <button onclick="deleteMatch(${round.id}, ${match.id})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
+                                حذف المباراة
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <input type="text" id="edit_team1_${match.id}" value="${match.team1}" class="border rounded px-3 py-2 w-full mb-2" placeholder="الفريق الأول">
+                                <input type="text" id="edit_team1Flag_${match.id}" value="${match.team1Flag}" class="border rounded px-3 py-2 w-full" placeholder="رمز الفريق">
+                            </div>
+                            <div>
+                                <input type="text" id="edit_team2_${match.id}" value="${match.team2}" class="border rounded px-3 py-2 w-full mb-2" placeholder="الفريق الثاني">
+                                <input type="text" id="edit_team2Flag_${match.id}" value="${match.team2Flag}" class="border rounded px-3 py-2 w-full" placeholder="رمز الفريق">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <input type="date" id="edit_date_${match.id}" value="${match.date}" class="border rounded px-3 py-2">
+                            <input type="time" id="edit_time_${match.id}" value="${match.time}" class="border rounded px-3 py-2">
+                            <input type="text" id="edit_result_${match.id}" value="${match.actualResult}" class="border rounded px-3 py-2" placeholder="النتيجة (2-1)">
+                        </div>
+                        <button onclick="updateMatch(${match.id})" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full">
+                            تحديث المباراة
+                        </button>
+                    `;
+                    container.appendChild(matchDiv);
+                });
+            });
+        }
+
+        function addNewRound() {
+            const name = document.getElementById('newRoundName').value.trim();
+            const phase = document.getElementById('newRoundPhase').value;
+            
+            if (!name) {
+                alert('يرجى إدخال اسم الجولة');
+                return;
+            }
+            
+            const newRound = {
+                id: nextRoundId++,
+                name: name,
+                phase: phase,
+                matches: []
+            };
+            
+            rounds.push(newRound);
+            document.getElementById('newRoundName').value = '';
+            
+            renderMatches();
+            populateRoundSelect();
+            populateEditMatchesList();
+            
+            alert('تم إضافة الجولة بنجاح!');
+        }
+
+        function addNewMatch() {
+            const roundId = parseInt(document.getElementById('matchRoundSelect').value);
+            const team1 = document.getElementById('newTeam1').value.trim();
+            const team1Flag = document.getElementById('newTeam1Flag').value.trim();
+            const team2 = document.getElementById('newTeam2').value.trim();
+            const team2Flag = document.getElementById('newTeam2Flag').value.trim();
+            const date = document.getElementById('newMatchDate').value;
+            const time = document.getElementById('newMatchTime').value;
+            const result = document.getElementById('newActualResult').value.trim();
+            
+            if (!team1 || !team2 || !date || !time || !result) {
+                alert('يرجى ملء جميع الحقول المطلوبة');
+                return;
+            }
+            
+            const round = rounds.find(r => r.id === roundId);
+            if (!round) {
+                alert('الجولة غير موجودة');
+                return;
+            }
+            
+            const newMatch = {
+                id: nextMatchId++,
+                team1: team1,
+                team2: team2,
+                team1Flag: team1Flag || '⚽',
+                team2Flag: team2Flag || '⚽',
+                actualResult: result,
+                date: date,
+                time: time
+            };
+            
+            round.matches.push(newMatch);
+            
+            // Clear form
+            document.getElementById('newTeam1').value = '';
+            document.getElementById('newTeam1Flag').value = '';
+            document.getElementById('newTeam2').value = '';
+            document.getElementById('newTeam2Flag').value = '';
+            document.getElementById('newMatchDate').value = '';
+            document.getElementById('newMatchTime').value = '';
+            document.getElementById('newActualResult').value = '';
+            
+            renderMatches();
+            populateEditMatchesList();
+            
+            alert('تم إضافة المباراة بنجاح!');
+        }
+
+        function updateMatch(matchId) {
+            let targetMatch = null;
+            let targetRound = null;
+            
+            // Find the match
+            for (let round of rounds) {
+                for (let match of round.matches) {
+                    if (match.id === matchId) {
+                        targetMatch = match;
+                        targetRound = round;
+                        break;
+                    }
+                }
+                if (targetMatch) break;
+            }
+            
+            if (!targetMatch) {
+                alert('المباراة غير موجودة');
+                return;
+            }
+            
+            // Update match data
+            targetMatch.team1 = document.getElementById(`edit_team1_${matchId}`).value.trim();
+            targetMatch.team1Flag = document.getElementById(`edit_team1Flag_${matchId}`).value.trim();
+            targetMatch.team2 = document.getElementById(`edit_team2_${matchId}`).value.trim();
+            targetMatch.team2Flag = document.getElementById(`edit_team2Flag_${matchId}`).value.trim();
+            targetMatch.date = document.getElementById(`edit_date_${matchId}`).value;
+            targetMatch.time = document.getElementById(`edit_time_${matchId}`).value;
+            targetMatch.actualResult = document.getElementById(`edit_result_${matchId}`).value.trim();
+            
+            renderMatches();
+            alert('تم تحديث المباراة بنجاح!');
+        }
+
+        function deleteMatch(roundId, matchId) {
+            if (!confirm('هل أنت متأكد من حذف هذه المباراة؟')) {
+                return;
+            }
+            
+            const round = rounds.find(r => r.id === roundId);
+            if (round) {
+                round.matches = round.matches.filter(m => m.id !== matchId);
+                
+                // Remove any predictions for this match
+                delete userPredictions[matchId];
+                
+                // Remove any double match selection for this match
+                if (doubleMatchSelections[roundId] === matchId) {
+                    delete doubleMatchSelections[roundId];
+                }
+                
+                renderMatches();
+                populateEditMatchesList();
+                alert('تم حذف المباراة بنجاح!');
+            }
+        }
+
+        window.resetAll = function() {
+            console.log('🔄 بدء إعادة التعيين');
+            if (!confirm('هل أنت متأكد من إعادة تعيين جميع المتسابقين والبيانات؟')) {
+                return;
+            }
+            
+            players = {};
+            currentPlayerId = null;
+            nextPlayerId = 1;
+            
+            // Reset all round double multipliers
+            rounds.forEach(round => {
+                round.doubleRound = false;
+            });
+            
+            document.getElementById('totalPoints').textContent = '0';
+            updateLeaderboard();
+            renderMatches();
+            
+            // Clear localStorage
+            localStorage.clear();
+            
+            // Reset UI to login state
+            document.getElementById('playerLogin').classList.remove('hidden');
+            document.getElementById('currentPlayerInfo').classList.add('hidden');
+            document.getElementById('mainContent').classList.add('hidden');
+            document.getElementById('playerNameInput').value = '';
+            
+            alert('✅ تم إعادة تعيين جميع البيانات!');
+            console.log('✅ تم إعادة التعيين بنجاح');
+        }
+
+        // Player Management Functions
+        window.loginPlayer = function() {
+            console.log('🚀 بدء تسجيل الدخول');
+            const nameInput = document.getElementById('playerNameInput');
+            const name = nameInput.value.trim();
+            
+            if (!name) {
+                alert('يرجى إدخال اسمك أولاً!');
+                return;
+            }
+            
+            console.log('👤 اسم المستخدم:', name);
+            
+            // Check if player exists
+            let existingPlayerId = null;
+            Object.keys(players).forEach(playerId => {
+                if (players[playerId].name.toLowerCase() === name.toLowerCase()) {
+                    existingPlayerId = playerId;
+                }
+            });
+            
+            if (existingPlayerId) {
+                // Existing player
+                currentPlayerId = existingPlayerId;
+                console.log('🔄 مستخدم موجود');
+                showWelcomeMessage(`مرحباً بعودتك ${name}! 🎉`);
+            } else {
+                // New player
+                const playerId = nextPlayerId++;
+                const joinDate = new Date().toLocaleDateString('ar-SA');
+                players[playerId] = {
+                    name: name,
+                    predictions: {},
+                    totalPoints: 0,
+                    roundPoints: {},
+                    doubleMatchSelections: {},
+                    doubleRoundUsed: {first: false, second: false},
+                    weeklyStats: {},
+                    joinDate: joinDate
+                };
+                currentPlayerId = playerId;
+                console.log('✨ مستخدم جديد تم إنشاؤه');
+                showWelcomeMessage(`مرحباً ${name}! تم تسجيلك بنجاح 🚀`);
+            }
+            
+            // Show main content
+            document.getElementById('playerLogin').classList.add('hidden');
+            document.getElementById('currentPlayerInfo').classList.remove('hidden');
+            document.getElementById('mainContent').classList.remove('hidden');
+            document.getElementById('currentPlayerName').textContent = name;
+            
+            // Load player data and render
+            loadPlayerData();
+            renderMatches();
+            updatePlayerStats();
+            updateLeaderboard();
+            
+            // Save to localStorage
+            localStorage.setItem('currentPlayerId', currentPlayerId);
+            localStorage.setItem('playersData', JSON.stringify(players));
+            
+            console.log('✅ تم تسجيل الدخول بنجاح');
+        }
+        
+        window.logoutPlayer = function() {
+            console.log('🚪 بدء تسجيل الخروج');
+            if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+                currentPlayerId = null;
+                
+                // Hide main content and show login
+                document.getElementById('playerLogin').classList.remove('hidden');
+                document.getElementById('currentPlayerInfo').classList.add('hidden');
+                document.getElementById('mainContent').classList.add('hidden');
+                
+                // Clear form
+                document.getElementById('playerNameInput').value = '';
+                document.getElementById('totalPoints').textContent = '0';
+                clearCurrentData();
+                
+                // Clear localStorage
+                localStorage.removeItem('currentPlayerId');
+                console.log('✅ تم تسجيل الخروج');
+            }
+        }
+        
+        window.viewMyResults = function() {
+            console.log('📊 عرض النتائج');
+            if (!currentPlayerId || !players[currentPlayerId]) {
+                alert('لا توجد نتائج لعرضها');
+                return;
+            }
+            
+            calculateResults();
+        }
+        
+        window.viewMyHistory = function() {
+            console.log('📈 عرض التاريخ');
+            if (!currentPlayerId || !players[currentPlayerId]) {
+                alert('لا يوجد تاريخ لعرضه');
+                return;
+            }
+            
+            const player = players[currentPlayerId];
+            const weeklyStats = player.weeklyStats || {};
+            
+            if (Object.keys(weeklyStats).length === 0) {
+                alert('لا يوجد تاريخ مسجل بعد. ابدأ بالتوقع في هذا الأسبوع!');
+                return;
+            }
+            
+            // Show history modal (existing code)
+            let historyHTML = `
+                <div class="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                        <div>
+                            <div class="text-2xl font-bold text-blue-600">${player.totalPoints || 0}</div>
+                            <div class="text-sm text-gray-600">إجمالي النقاط</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-purple-600">${Object.keys(weeklyStats).length}</div>
+                            <div class="text-sm text-gray-600">أسابيع المشاركة</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-orange-600">${Math.round((player.totalPoints || 0) / Math.max(Object.keys(weeklyStats).length, 1))}</div>
+                            <div class="text-sm text-gray-600">متوسط النقاط</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-green-600">${player.joinDate || 'غير محدد'}</div>
+                            <div class="text-sm text-gray-600">تاريخ الانضمام</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="space-y-4 max-h-64 overflow-y-auto">
+            `;
+            
+            // Sort weeks by date (newest first)
+            const sortedWeeks = Object.keys(weeklyStats).sort((a, b) => {
+                return new Date(weeklyStats[b].date) - new Date(weeklyStats[a].date);
+            });
+            
+            sortedWeeks.forEach(weekKey => {
+                const weekData = weeklyStats[weekKey];
+                const weekDate = new Date(weekData.date).toLocaleDateString('ar-SA');
+                
+                historyHTML += `
+                    <div class="border rounded-lg p-4 bg-white hover:bg-gray-50">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="font-bold text-blue-600">${weekKey}</div>
+                            <div class="text-sm text-gray-500">${weekDate}</div>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div class="text-center">
+                                <div class="font-bold text-green-600">${weekData.points}</div>
+                                <div class="text-gray-600">النقاط</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-bold text-blue-600">${weekData.correctPredictions}</div>
+                                <div class="text-gray-600">صحيح</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-bold text-red-600">${weekData.wrongPredictions}</div>
+                                <div class="text-gray-600">خاطئ</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-bold ${weekData.bonusPoints > 0 ? 'text-green-600' : weekData.penaltyPoints > 0 ? 'text-red-600' : 'text-gray-600'}">
+                                    ${weekData.bonusPoints > 0 ? '+' + weekData.bonusPoints : weekData.penaltyPoints > 0 ? '-' + weekData.penaltyPoints : '0'}
+                                </div>
+                                <div class="text-gray-600">بونص/خصم</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            historyHTML += '</div>';
+            
+            document.getElementById('playerHistory').innerHTML = historyHTML;
+            document.getElementById('historyModal').classList.remove('hidden');
+            document.getElementById('historyModal').classList.add('flex');
+        }
+        
+        function showWelcomeMessage(message) {
+            // Create temporary welcome message
+            const welcomeDiv = document.createElement('div');
+            welcomeDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-500';
+            welcomeDiv.textContent = message;
+            document.body.appendChild(welcomeDiv);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                welcomeDiv.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    document.body.removeChild(welcomeDiv);
+                }, 500);
+            }, 3000);
+        }
+
+        function addPlayer() {
+            const name = prompt('أدخل اسم المتسابق:');
+            if (!name || name.trim() === '') {
+                return;
+            }
+            
+            const playerId = nextPlayerId++;
+            players[playerId] = {
+                name: name.trim(),
+                predictions: {},
+                totalPoints: 0,
+                roundPoints: {},
+                doubleMatchSelections: {},
+                doubleRoundUsed: {first: false, second: false}
+            };
+            
+            updateLeaderboard();
+            alert(`تم إضافة المتسابق "${name}" بنجاح!`);
+        }
+
+        function loadPlayerData() {
+            if (!currentPlayerId || !players[currentPlayerId]) return;
+            
+            const player = players[currentPlayerId];
+            
+            // Load predictions into form fields
+            Object.keys(player.predictions).forEach(matchId => {
+                const prediction = player.predictions[matchId].prediction;
+                const [team1Score, team2Score] = prediction.split('-');
+                
+                const team1Input = document.getElementById(`team1Score_${matchId}`);
+                const team2Input = document.getElementById(`team2Score_${matchId}`);
+                
+                if (team1Input) team1Input.value = team1Score;
+                if (team2Input) team2Input.value = team2Score;
+                
+                const predictionDiv = document.getElementById(`prediction_${matchId}`);
+                if (predictionDiv) {
+                    predictionDiv.textContent = `${team1Score} - ${team2Score}`;
+                    predictionDiv.className = "text-lg font-bold text-green-600";
+                }
+            });
+        }
+
+        function clearCurrentData() {
+            // Clear all input fields
+            rounds.forEach(round => {
+                round.matches.forEach(match => {
+                    const team1Input = document.getElementById(`team1Score_${match.id}`);
+                    const team2Input = document.getElementById(`team2Score_${match.id}`);
+                    
+                    if (team1Input) team1Input.value = '';
+                    if (team2Input) team2Input.value = '';
+                    
+                    const predictionDiv = document.getElementById(`prediction_${match.id}`);
+                    if (predictionDiv) {
+                        predictionDiv.textContent = "لم يتم التوقع بعد";
+                        predictionDiv.className = "text-lg font-bold text-blue-600";
+                    }
+                });
+            });
+        }
+
+        window.toggleLeaderboard = function() {
+            console.log('🏆 تبديل عرض الترتيب');
+            const container = document.getElementById('leaderboardContainer');
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                updateLeaderboard();
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        window.calculateResults = function() {
+            console.log('🧮 بدء حساب النتائج');
+            if (!currentPlayerId) {
+                alert('يرجى تسجيل الدخول أولاً!');
+                return;
+            }
+            
+            const player = players[currentPlayerId];
+            if (Object.keys(player.predictions).length === 0) {
+                alert('يرجى إدخال توقعاتك أولاً!');
+                return;
+            }
+
+            let totalPoints = 0;
+            let resultsHTML = '';
+            let roundResults = {};
+            let totalCorrectPredictions = 0;
+            let totalWrongPredictions = 0;
+
+            // Calculate points for each round
+            rounds.forEach(round => {
+                let roundPoints = 0;
+                let correctInRound = 0;
+                let wrongInRound = 0;
+                let roundHTML = `
+                    <div class="mb-6 border rounded-lg p-4">
+                        <h3 class="text-lg font-bold text-blue-600 mb-3">
+                            ${round.name} ${round.phase === 'first' ? '🥇' : '🥈'}
+                            ${round.doubleRound ? ' ⚡ (مضاعف الجولة)' : ''}
+                        </h3>
+                `;
+
+                round.matches.forEach(match => {
+                    if (player.predictions[match.id]) {
+                        const basePoints = calculatePoints(match.actualResult, player.predictions[match.id].prediction);
+                        let finalPoints = basePoints;
+                        
+                        // Count correct and wrong predictions
+                        if (basePoints > 0) {
+                            correctInRound++;
+                            totalCorrectPredictions++;
+                        } else {
+                            wrongInRound++;
+                            totalWrongPredictions++;
+                        }
+                        
+                        // Apply match multiplier
+                        if (player.doubleMatchSelections[round.id] === match.id) {
+                            finalPoints *= 2;
+                        }
+                        
+                        roundPoints += finalPoints;
+                        
+                        const pointsColor = basePoints === 4 ? 'text-green-600' : 
+                                          basePoints === 2 ? 'text-blue-600' :
+                                          basePoints === 1 ? 'text-yellow-600' : 'text-red-600';
+                        const pointsIcon = basePoints === 4 ? '🎯' : 
+                                         basePoints === 2 ? '🎪' :
+                                         basePoints === 1 ? '✅' : '❌';
+                        
+                        const multiplierText = player.doubleMatchSelections[round.id] === match.id ? 
+                                             ` × 2 = ${finalPoints}` : '';
+                        
+                        roundHTML += `
+                            <div class="border-b pb-2 mb-2 text-sm">
+                                <div class="font-semibold">${match.team1} vs ${match.team2}</div>
+                                <div class="text-gray-600">
+                                    النتيجة: ${match.actualResult} | توقعك: ${player.predictions[match.id].prediction}
+                                </div>
+                                <div class="${pointsColor} font-bold">
+                                    ${pointsIcon} ${basePoints} نقطة${multiplierText}
+                                    ${player.doubleMatchSelections[round.id] === match.id ? ' ⭐' : ''}
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+
+                // Apply round multiplier
+                if (round.doubleRound) {
+                    roundPoints *= 2;
+                    // Mark this phase as used
+                    doubleRoundUsed[round.phase] = true;
+                }
+
+                roundHTML += `
+                    <div class="text-right font-bold text-lg ${round.doubleRound ? 'text-purple-600' : 'text-blue-600'}">
+                        مجموع الجولة: ${roundPoints} نقطة
+                        ${round.doubleRound ? ' ⚡ (مضاعف)' : ''}
+                    </div>
+                    <div class="text-right text-sm text-gray-600 mt-2">
+                        ✅ صحيح: ${correctInRound} | ❌ خاطئ: ${wrongInRound}
+                    </div>
+                </div>
+                `;
+
+                resultsHTML += roundHTML;
+                totalPoints += roundPoints;
+                roundResults[round.id] = roundPoints;
+            });
+
+            // Calculate bonus and penalty
+            let bonusPoints = 0;
+            let penaltyPoints = 0;
+            let highScorePredictions = 0; // Count predictions with 2+ points (exact score or goal difference)
+            let zeroPredictions = 0; // Count predictions with 0 points
+            
+            // Count high score and zero predictions
+            rounds.forEach(round => {
+                round.matches.forEach(match => {
+                    if (player.predictions[match.id]) {
+                        const basePoints = calculatePoints(match.actualResult, player.predictions[match.id].prediction);
+                        if (basePoints >= 2) { // Exact score (4) or goal difference (2)
+                            highScorePredictions++;
+                        } else if (basePoints === 0) { // Wrong predictions
+                            zeroPredictions++;
+                        }
+                    }
+                });
+            });
+            
+            // Bonus calculation: 4+ high score predictions (exact or goal difference)
+            if (highScorePredictions >= 4) {
+                bonusPoints = (highScorePredictions - 2); // 4 high = +2, 5 high = +3, etc.
+            }
+            
+            // Penalty calculation: 4+ zero predictions
+            if (zeroPredictions >= 4) {
+                penaltyPoints = (zeroPredictions - 2); // 4 zero = -2, 5 zero = -3, etc.
+            }
+
+            // Apply bonus and penalty
+            totalPoints += bonusPoints - penaltyPoints;
+
+            // Bonus/Penalty section
+            let bonusPenaltyHTML = '';
+            if (bonusPoints > 0 || penaltyPoints > 0) {
+                bonusPenaltyHTML = `
+                    <div class="mt-4 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border-2 border-yellow-200">
+                        <h4 class="text-lg font-bold text-center mb-3">🎲 البونص والخصم</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                `;
+                
+                if (bonusPoints > 0) {
+                    bonusPenaltyHTML += `
+                        <div class="bg-green-100 rounded-lg p-3">
+                            <div class="text-green-800 font-bold">🎯 بونص التوقعات عالية النقاط</div>
+                            <div class="text-green-600">${highScorePredictions} توقع عالي النقاط = +${bonusPoints} نقطة</div>
+                            <div class="text-xs text-green-500">النتيجة الدقيقة أو فارق الأهداف</div>
+                        </div>
+                    `;
+                }
+                
+                if (penaltyPoints > 0) {
+                    bonusPenaltyHTML += `
+                        <div class="bg-red-100 rounded-lg p-3">
+                            <div class="text-red-800 font-bold">❌ خصم التوقعات الخاطئة</div>
+                            <div class="text-red-600">${zeroPredictions} توقع خاطئ = -${penaltyPoints} نقطة</div>
+                            <div class="text-xs text-red-500">التوقعات بدون نقاط</div>
+                        </div>
+                    `;
+                }
+                
+                bonusPenaltyHTML += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            resultsHTML += bonusPenaltyHTML;
+
+            resultsHTML += `
+                <div class="text-center mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border-2 border-blue-200">
+                    <div class="text-sm text-gray-600 mb-2">
+                        📊 الإحصائيات: ${totalCorrectPredictions} صحيح | ${totalWrongPredictions} خاطئ
+                    </div>
+                    <div class="text-3xl font-bold text-blue-600 mb-2">
+                        🏆 المجموع النهائي: ${totalPoints} نقطة
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        ${totalPoints >= 25 ? 'أسطوري! 🌟⭐' : 
+                          totalPoints >= 20 ? 'ممتاز جداً! 🌟' : 
+                          totalPoints >= 15 ? 'جيد جداً! 👏' : 
+                          totalPoints >= 10 ? 'جيد! 👍' : 
+                          totalPoints >= 5 ? 'مقبول! 😊' : 'حاول مرة أخرى! 💪'}
+                    </div>
+                </div>
+            `;
+
+            // Save weekly results to player
+            const weekKey = getWeekKey();
+            if (!player.weeklyStats) player.weeklyStats = {};
+            
+            player.weeklyStats[weekKey] = {
+                points: totalPoints,
+                roundPoints: roundResults,
+                predictions: {...player.predictions},
+                doubleMatchSelections: {...player.doubleMatchSelections},
+                correctPredictions: totalCorrectPredictions,
+                wrongPredictions: totalWrongPredictions,
+                bonusPoints: bonusPoints,
+                penaltyPoints: penaltyPoints,
+                date: new Date().toISOString()
+            };
+            
+            // Calculate cumulative total points
+            let cumulativePoints = 0;
+            Object.keys(player.weeklyStats).forEach(week => {
+                cumulativePoints += player.weeklyStats[week].points;
+            });
+            player.totalPoints = cumulativePoints;
+            player.roundPoints = roundResults; // Current week round points
+            
+            // Mark used multipliers for this week
+            rounds.forEach(round => {
+                if (round.doubleRound) {
+                    player.doubleRoundUsed[round.phase] = true;
+                }
+            });
+            
+            // Update player stats display
+            updatePlayerStats();
+
+            document.getElementById('finalResults').innerHTML = resultsHTML;
+            document.getElementById('totalPoints').textContent = totalPoints;
+            document.getElementById('resultsModal').classList.remove('hidden');
+            document.getElementById('resultsModal').classList.add('flex');
+            
+            // Update leaderboard
+            updateLeaderboard();
+            
+            // Update multiplier status
+            updateMultiplierButtons();
+            
+            // Save data
+            saveData();
+            
+            console.log('✅ تم حساب النتائج بنجاح');
+        }
+
+        window.closeModal = function() {
+            document.getElementById('resultsModal').classList.add('hidden');
+            document.getElementById('resultsModal').classList.remove('flex');
+        }
+
+        window.closeHistoryModal = function() {
+            document.getElementById('historyModal').classList.add('hidden');
+            document.getElementById('historyModal').classList.remove('flex');
+        }
+
+        function updateLeaderboard() {
+            const container = document.getElementById('leaderboardTable');
+            
+            if (Object.keys(players).length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-500 py-4">لا يوجد متسابقين بعد</div>';
+                return;
+            }
+            
+            // Sort players by cumulative total points
+            const sortedPlayers = Object.keys(players).sort((a, b) => {
+                const totalA = players[a].totalPoints || 0;
+                const totalB = players[b].totalPoints || 0;
+                if (totalA !== totalB) return totalB - totalA;
+                
+                // If same total points, sort by weeks participated (more weeks = higher rank)
+                const weeksA = Object.keys(players[a].weeklyStats || {}).length;
+                const weeksB = Object.keys(players[b].weeklyStats || {}).length;
+                return weeksB - weeksA;
+            });
+            
+            let tableHTML = `
+                <table class="w-full border-collapse border border-gray-300">
+                    <thead>
+                        <tr class="bg-purple-100">
+                            <th class="border border-gray-300 px-4 py-2">الترتيب</th>
+                            <th class="border border-gray-300 px-4 py-2">اسم المتسابق</th>
+                            <th class="border border-gray-300 px-4 py-2">المجموع التراكمي</th>
+                            <th class="border border-gray-300 px-2 py-2 text-sm">الأسابيع</th>
+                            <th class="border border-gray-300 px-2 py-2 text-sm">المتوسط</th>
+                            <th class="border border-gray-300 px-2 py-2 text-sm">هذا الأسبوع</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            sortedPlayers.forEach((playerId, index) => {
+                const player = players[playerId];
+                const rank = index + 1;
+                const rankIcon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}`;
+                const weeklyStats = player.weeklyStats || {};
+                const weeksCount = Object.keys(weeklyStats).length;
+                const average = weeksCount > 0 ? Math.round((player.totalPoints || 0) / weeksCount) : 0;
+                const currentWeekKey = getWeekKey();
+                const thisWeekPoints = weeklyStats[currentWeekKey] ? weeklyStats[currentWeekKey].points : 0;
+                
+                tableHTML += `
+                    <tr class="${rank <= 3 ? 'bg-yellow-50' : 'bg-white'} hover:bg-gray-50">
+                        <td class="border border-gray-300 px-4 py-2 text-center font-bold">${rankIcon}</td>
+                        <td class="border border-gray-300 px-4 py-2 font-semibold">
+                            ${player.name}
+                            ${playerId == currentPlayerId ? '<span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full mr-2">أنت</span>' : ''}
+                        </td>
+                        <td class="border border-gray-300 px-4 py-2 text-center font-bold text-blue-600">${player.totalPoints || 0}</td>
+                        <td class="border border-gray-300 px-2 py-2 text-center text-sm">${weeksCount}</td>
+                        <td class="border border-gray-300 px-2 py-2 text-center text-sm">${average}</td>
+                        <td class="border border-gray-300 px-2 py-2 text-center text-sm font-bold ${thisWeekPoints > 0 ? 'text-green-600' : 'text-gray-400'}">${thisWeekPoints}</td>
+                    </tr>
+                `;
+            });
+            
+            tableHTML += `
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = tableHTML;
+        }
+
+        // Auto-save functions with enhanced data persistence
+        function saveData() {
+            try {
+                localStorage.setItem('playersData', JSON.stringify(players));
+                localStorage.setItem('roundsData', JSON.stringify(rounds));
+                localStorage.setItem('nextPlayerId', nextPlayerId.toString());
+                localStorage.setItem('nextMatchId', nextMatchId.toString());
+                localStorage.setItem('nextRoundId', nextRoundId.toString());
+                localStorage.setItem('lastSaveTime', new Date().toISOString());
+                
+                // Also save to a backup key for safety
+                localStorage.setItem('playersDataBackup', JSON.stringify(players));
+            } catch (error) {
+                console.error('خطأ في حفظ البيانات:', error);
+                alert('تعذر حفظ البيانات. تأكد من وجود مساحة كافية في المتصفح.');
+            }
+        }
+        
+        function loadData() {
+            try {
+                // Load players data with backup fallback
+                let savedPlayers = localStorage.getItem('playersData');
+                if (!savedPlayers) {
+                    savedPlayers = localStorage.getItem('playersDataBackup');
+                }
+                if (savedPlayers) {
+                    const loadedPlayers = JSON.parse(savedPlayers);
+                    // Ensure all players have required properties
+                    Object.keys(loadedPlayers).forEach(playerId => {
+                        const player = loadedPlayers[playerId];
+                        if (!player.weeklyStats) player.weeklyStats = {};
+                        if (!player.joinDate) player.joinDate = 'غير محدد';
+                        if (!player.doubleRoundUsed) player.doubleRoundUsed = {first: false, second: false};
+                    });
+                    players = loadedPlayers;
+                }
+                
+                // Load rounds data
+                const savedRounds = localStorage.getItem('roundsData');
+                if (savedRounds) {
+                    rounds.length = 0; // Clear existing rounds
+                    rounds.push(...JSON.parse(savedRounds));
+                }
+                
+                // Load counters
+                const savedNextPlayerId = localStorage.getItem('nextPlayerId');
+                if (savedNextPlayerId) {
+                    nextPlayerId = parseInt(savedNextPlayerId);
+                }
+                
+                const savedNextMatchId = localStorage.getItem('nextMatchId');
+                if (savedNextMatchId) {
+                    nextMatchId = parseInt(savedNextMatchId);
+                }
+                
+                const savedNextRoundId = localStorage.getItem('nextRoundId');
+                if (savedNextRoundId) {
+                    nextRoundId = parseInt(savedNextRoundId);
+                }
+            } catch (error) {
+                console.error('خطأ في تحميل البيانات:', error);
+                alert('تعذر تحميل البيانات المحفوظة. سيتم البدء بصفحة جديدة.');
+            }
+            
+            // Check if user was logged in
+            const savedCurrentPlayerId = localStorage.getItem('currentPlayerId');
+            if (savedCurrentPlayerId && players[savedCurrentPlayerId]) {
+                currentPlayerId = savedCurrentPlayerId;
+                const playerName = players[currentPlayerId].name;
+                
+                // Show logged in state
+                document.getElementById('playerLogin').classList.add('hidden');
+                document.getElementById('currentPlayerInfo').classList.remove('hidden');
+                document.getElementById('mainContent').classList.remove('hidden');
+                document.getElementById('currentPlayerName').textContent = playerName;
+                
+                // Load player data and update stats
+                loadPlayerData();
+                updatePlayerStats();
+            }
+        }
+        
+        // Auto-save on every change
+        function updatePrediction(matchId, roundId) {
+            if (!currentPlayerId) {
+                alert('يرجى تسجيل الدخول أولاً!');
+                return;
+            }
+            
+            const team1Score = document.getElementById(`team1Score_${matchId}`).value;
+            const team2Score = document.getElementById(`team2Score_${matchId}`).value;
+            
+            if (team1Score !== '' && team2Score !== '') {
+                players[currentPlayerId].predictions[matchId] = {
+                    prediction: `${team1Score}-${team2Score}`,
+                    roundId: roundId
+                };
+                document.getElementById(`prediction_${matchId}`).textContent = `${team1Score} - ${team2Score}`;
+                document.getElementById(`prediction_${matchId}`).className = "text-lg font-bold text-green-600";
+            } else {
+                delete players[currentPlayerId].predictions[matchId];
+                document.getElementById(`prediction_${matchId}`).textContent = "لم يتم التوقع بعد";
+                document.getElementById(`prediction_${matchId}`).className = "text-lg font-bold text-blue-600";
+            }
+            
+            // Auto-save
+            saveData();
+        }
+
+        // Initialize the page
+        loadData(); // Load saved data first
+        renderMatches();
+        updateLeaderboard();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'971fef92309a5051',t:'MTc1NTY3MjQxMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
