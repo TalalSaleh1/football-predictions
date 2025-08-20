@@ -1017,9 +1017,16 @@
             rounds.push(newRound);
             document.getElementById('newRoundName').value = '';
             
+            // Re-render everything to show new round
             renderMatches();
             populateRoundSelect();
             populateEditMatchesList();
+            
+            // If user is logged in, reload their data
+            if (currentPlayerId) {
+                loadPlayerData();
+            }
+            
             saveData(); // Save changes
             
             alert('تم إضافة الجولة بنجاح!');
@@ -1068,8 +1075,15 @@
             document.getElementById('newMatchTime').value = '';
             document.getElementById('newActualResult').value = '';
             
+            // Re-render everything to show new match
             renderMatches();
             populateEditMatchesList();
+            
+            // If user is logged in, reload their data
+            if (currentPlayerId) {
+                loadPlayerData();
+            }
+            
             saveData(); // Save changes
             
             alert('تم إضافة المباراة بنجاح!');
@@ -1118,8 +1132,15 @@
             targetMatch.time = newTime;
             targetMatch.actualResult = newResult || null;
             
+            // Re-render everything to show updated match
             renderMatches();
             populateEditMatchesList();
+            
+            // If user is logged in, reload their data
+            if (currentPlayerId) {
+                loadPlayerData();
+            }
+            
             saveData(); // Save changes
             alert('تم تحديث المباراة بنجاح!');
         }
@@ -1145,8 +1166,15 @@
                     }
                 });
                 
+                // Re-render everything to show changes
                 renderMatches();
                 populateEditMatchesList();
+                
+                // If user is logged in, reload their data
+                if (currentPlayerId) {
+                    loadPlayerData();
+                }
+                
                 saveData(); // Save changes
                 alert('تم حذف المباراة بنجاح!');
             }
@@ -1154,7 +1182,22 @@
 
         window.resetAll = function() {
             console.log('🔄 بدء إعادة التعيين');
-            if (!confirm('هل أنت متأكد من إعادة تعيين جميع المتسابقين والبيانات؟')) {
+            
+            // Request admin password
+            const password = prompt('🔐 أدخل كلمة مرور المدير لإعادة التعيين:');
+            
+            if (password === null) {
+                console.log('❌ تم إلغاء العملية');
+                return;
+            }
+            
+            if (password !== 'admin123') {
+                console.log('❌ كلمة مرور خاطئة');
+                alert('❌ كلمة المرور غير صحيحة!');
+                return;
+            }
+            
+            if (!confirm('⚠️ هل أنت متأكد من إعادة تعيين جميع المتسابقين والبيانات؟\nهذا الإجراء لا يمكن التراجع عنه!')) {
                 return;
             }
             
@@ -1179,6 +1222,12 @@
             document.getElementById('currentPlayerInfo').classList.add('hidden');
             document.getElementById('mainContent').classList.add('hidden');
             document.getElementById('playerNameInput').value = '';
+            
+            // Close admin panel if open
+            const adminPanel = document.getElementById('adminPanel');
+            if (!adminPanel.classList.contains('hidden')) {
+                adminPanel.classList.add('hidden');
+            }
             
             alert('✅ تم إعادة تعيين جميع البيانات!');
             console.log('✅ تم إعادة التعيين بنجاح');
@@ -1888,5 +1937,5 @@
         renderMatches();
         updateLeaderboard();
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97200e0f20b0f445',t:'MTc1NTY3MzY1OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97201f1fa3899846',t:'MTc1NTY3NDM1Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
